@@ -1,0 +1,84 @@
+# Set current working directory
+ROOT=$PWD
+echo "root folder: $ROOT"
+
+# Folder that will house the source and build files
+MAIN_FOLDER=${ROOT}
+
+# Folder that will hold the main LLVM source
+LLVM_FOLDER=${MAIN_FOLDER}/llvm
+
+# Folder that will hold all of the build files and compiled code
+BUILD_FOLDER=${MAIN_FOLDER}/build
+
+# Folder that will hold compiled toolchains
+TC_FOLDER=${DIR}/toolchains
+
+TOOLS_FOLDER=$LLVM_FOLDER/tools/
+CLANG_TOOLS_EXTRA_FOLDER=$TOOLS_FOLDER/clang/tools
+PROJECTS_FOLDER=$LLVM_FOLDER/projects
+
+function clone() {
+	git clone https://github.com/llvm-mirror/llvm
+
+	cd $TOOLS_FOLDER
+	git clone https://github.com/llvm-mirror/clang &
+	git clone https://github.com/llvm-mirror/lldb &
+	git clone https://github.com/llvm-mirror/lld &
+	wait
+
+	cd $CLANG_TOOLS_EXTRA_FOLDER
+	git clone https://github.com/llvm-mirror/clang-tools-extra extra
+
+	cd $PROJECTS_FOLDER
+	git clone https://github.com/llvm-mirror/libcxx
+	git clone https://github.com/llvm-mirror/libcxxabi
+	git clone https://github.com/llvm-mirror/compiler-rt
+
+	cd $ROOT 
+}
+
+
+function checkout() {
+	echo "checking out branch $1"
+	cd "${LLVM_FOLDER}"
+	git checkout "$1"
+
+	cd $TOOLS_FOLDER/clang
+	git checkout "$1"
+	cd $CLANG_TOOLS_EXTRA_FOLDER/extra
+	git checkout "$1"
+	cd $TOOLS_FOLDER/lldb
+	git checkout "$1"
+	cd $TOOLS_FOLDER/lld
+	git checkout "$1"
+	cd $PROJECTS_FOLDER/libcxx
+	git checkout "$1"
+	cd $PROJECTS_FOLDER/libcxxabi
+	git checkout "$1"
+	cd $PROJECTS_FOLDER/compiler-rt
+	git checkout "$1"
+
+	cd $ROOT 
+}
+
+function build() {
+	echo "building"
+
+	mkdir -p "${BUILD_FOLDER}"
+	cd "${BUILD_FOLDER}"
+
+	#cmake -G Ninja \
+		#-DCMAKE_BUILD_TYPE=Release \
+		#-DCLANG_ENABLE_BOOTSTRAP=On \
+		#-DCOMPILER_RT_INCLUDE_TESTS=Off \
+		#-DLLVM_ENABLE_ASSERTIONS=Off \
+		#-DLLVM_OPTIMIZED_TABLEGEN=On \
+		#-DLLVM_ENABLE_LTO=Thin \
+		#"${LLVM_FOLDER}"
+	cmake -G Ninja $LLVM_FOLDER
+
+	time ninja && SUCCESS=true
+
+	cd $ROOT 
+}
